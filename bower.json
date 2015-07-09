@@ -1,0 +1,20 @@
+{
+  "name": "StyleSheet",
+  "main": "StyleSheet.js",
+  "version": "0.0.0",
+  "authors": [
+    "aanderson <aidananderson@projectpals.com>"
+  ],
+  "moduleType": [
+    "amd"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "directory/bower_components",
+    "test",
+    "tests"
+  ]
+}
