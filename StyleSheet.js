@@ -61,6 +61,7 @@ define(function(require){
 			return newRule;
 		}
 
+		//helper function
 		StyleSheet.prototype.findStyleAttr = function(attr){
 			
 			var rules = sheet.rules;
@@ -75,6 +76,7 @@ define(function(require){
 			return found;
 		}
 
+		//helper function
 		StyleSheet.prototype.findAttr = function(attr){
 			var found = {found:null, index:null};
 			for (var i = 0; i < Styles.length; i++) {
@@ -86,7 +88,7 @@ define(function(require){
 			return found;
 		}
 
-
+		//main function
 		StyleSheet.prototype.addAttribute = function(attr, callback){
 			if (typeof attr === "undefined"
 				|| attr.length === 0){
@@ -95,26 +97,38 @@ define(function(require){
 			}
 
 			
-			
-			Styles.push(new Attribute(attr));
+			var pushed = new Attribute(attr);
+			Styles.push(pushed);
 //			Styles[attr] = {};
 			var insert = attr + " { }";
-			sheet.insertRule(insert,0);
-			console.log(sheet);
+			try{
+				sheet.insertRule(insert,0);	
+			}
+			catch (e){
+				Styles.splice(Styles.indexOf(pushed), 1);
+				return callback(e.message,false,"Syntax error!");
+			}
+			
 			
 			//sheet.insertRule("kiosk-controller::shadow kiosk-pager { background-color:red; }", 0);			
 			callback(null, true, "Success.");
 
 		}
 
+		//main function
 		StyleSheet.prototype.removeAttribute = function(attr, callback){
 			if (typeof attr === "undefined"
 				|| attr.length === 0){
 				return callback("Attribute must be defined.");
 			}
 			
-
-			sheet.deleteRule(this.findStyleAttr(Styles[attr]).index);
+			try {
+				sheet.deleteRule(this.findStyleAttr(Styles[attr]).index);
+			}
+			catch (e){
+				return callback(e.message,false,"Syntax error!");
+			}
+			
 			//index, 
 			Styles.splice(this.findAttr(attr).index ,1);
 			
@@ -124,6 +138,7 @@ define(function(require){
 		}
 
 		//overwrites rule
+		//main function
 		StyleSheet.prototype.addRule = function(attr, rule, callback){
 			
 			if (typeof attr === "undefined"
@@ -144,9 +159,14 @@ define(function(require){
 					attribute.rules[sub] = rule[sub];
 				}	
 				
-								
-				sheet.deleteRule(this.findStyleAttr(attr).index);
-				sheet.insertRule(buildRules(attr,attribute.rules), 0);
+				try {
+					sheet.deleteRule(this.findStyleAttr(attr).index);
+					sheet.insertRule(buildRules(attr,attribute.rules), 0);
+				}
+				catch (e){
+					return callback(e.message,false,"Syntax error!");
+				}
+				
 				
 				callback(null, true, "Success.");
 
@@ -171,8 +191,13 @@ define(function(require){
 			else {
 				//not removing rules correctly
 				
+				try {
+					sheet.deleteRule(this.findStyleAttr(attribute.found.attr).index);
+				}
+				catch (e){
+					return callback(e.message,false,"Syntax error!");	
+				}
 				
-				sheet.deleteRule(this.findStyleAttr(attribute.found.attr).index);
 
 				var key,value;
 				for (var key in rule){
@@ -180,7 +205,14 @@ define(function(require){
 				}
 
 				delete attribute.found.rules[key];
-				sheet.insertRule(buildRules(attr,attribute.found.rules), 0);
+
+				try {
+					sheet.insertRule(buildRules(attr,attribute.found.rules), 0);
+				}
+				catch (e){
+					return callback(e.message,false,"Syntax error!");
+				}
+				
 
 				callback(null, true, "Success.");
 			}
@@ -193,45 +225,62 @@ define(function(require){
 		}
 
 		StyleSheet.prototype.changeSelector = function(old, newVal, callback){
-			
+			var self = this;
 			if (typeof old === "undefined" || old === "undefined"){
 				this.addAttribute(newVal, function(err, state, msg){
 					if (err){
-						callback(err);
+						return callback(err);
 					}
 					
-					callback(null,state,msg);
+					return callback(null,state,msg);
 				});
 			}
 			else{
-			var attr = this.findAttr(old).found.rules;
 			
-			var self = this;
-			this.removeAttribute(old, function(err,state,msg){
-				if (err){
-					callback(err);
-				}
+				var attr = this.findAttr(old).found;
 				
-				//console.log(attr);
-				self.addAttribute(newVal, function(err, state, msg){
-					if (err){
-						callback(err);
-					}
-					
-					for (var key in attr){
-						var o = {};
-						o[key] = attr[key];
-						self.addRule(newVal, o, function(err, state, msg){
+				if (typeof attr === "undefined" ||
+					attr == null){
+					self.addAttribute(newVal, function(err,state,msg){
+						if (err){
+							return callback(err);
+						}
+						return callback(null,true,"Selector Changed!");
+
+					});
+				}
+				else {
+					attr = attr.rules;
+				
+				
+					this.removeAttribute(old, function(err,state,msg){
+						if (err){
+							return callback(err);
+						}
+						
+						//console.log(attr);
+						self.addAttribute(newVal, function(err, state, msg){
 							if (err){
-								console.warn(err);
+								return callback(err);
 							}
 							
+							for (var key in attr){
+								var o = {};
+								o[key] = attr[key];
+								self.addRule(newVal, o, function(err, state, msg){
+									if (err){
+										console.warn(err);
+									}
+									
+								});
+							}
+							return callback(null, true, "Selector Changed!");
 						});
-					}
-					callback(null, true, "Selector Changed");
-				});
+						
+					});
+				}
+
 				
-			});
 		}
 		}
 
