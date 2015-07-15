@@ -62,6 +62,7 @@ define(function(require){
 		}
 
 		StyleSheet.prototype.findStyleAttr = function(attr){
+			
 			var rules = sheet.rules;
 			var found = {found: null, index: null}
 			for (var i = 0; i < rules.length; i++) {
@@ -77,7 +78,7 @@ define(function(require){
 		StyleSheet.prototype.findAttr = function(attr){
 			var found = {found:null, index:null};
 			for (var i = 0; i < Styles.length; i++) {
-				if (Styles[i].attr = attr){
+				if (Styles[i].attr == attr){
 					found.found = Styles[i];
 					found.index = i;
 				}
@@ -90,8 +91,10 @@ define(function(require){
 			if (typeof attr === "undefined"
 				|| attr.length === 0){
 
-				return callback(new Error("Attribute must be defined."));
+				return callback("Attribute must be defined.");
 			}
+
+			
 			
 			Styles.push(new Attribute(attr));
 //			Styles[attr] = {};
@@ -107,14 +110,14 @@ define(function(require){
 		StyleSheet.prototype.removeAttribute = function(attr, callback){
 			if (typeof attr === "undefined"
 				|| attr.length === 0){
-				return callback(new Error("Attribute must be defined."));
+				return callback("Attribute must be defined.");
 			}
 			
 
 			sheet.deleteRule(this.findStyleAttr(Styles[attr]).index);
 			//index, 
 			Styles.splice(this.findAttr(attr).index ,1);
-			console.log(sheet, Styles);
+			
 			//delete Styles[attr];
 			callback(null, true, "Attribute Deleted.");
 
@@ -122,15 +125,16 @@ define(function(require){
 
 		//overwrites rule
 		StyleSheet.prototype.addRule = function(attr, rule, callback){
+			
 			if (typeof attr === "undefined"
 				|| attr.length === 0){
-				return callback(new Error("Attribute must be defined."));
+				return callback("Attribute must be defined.");
 			}
 			if (typeof rule === "undefined"
 				|| rule.length === 0){
-				return callback(new Error("Rule must be defined."));
+				return callback("Rule must be defined.");
 			}
-
+			
 			var attribute = this.findAttr(attr).found;
 			if (typeof attribute === "undefined"){
 				callback(null, false, "Attribute Not Found.");
@@ -139,7 +143,7 @@ define(function(require){
 				for (var sub in rule){
 					attribute.rules[sub] = rule[sub];
 				}	
-
+				
 								
 				sheet.deleteRule(this.findStyleAttr(attr).index);
 				sheet.insertRule(buildRules(attr,attribute.rules), 0);
@@ -150,13 +154,14 @@ define(function(require){
 		}
 
 		StyleSheet.prototype.removeRule = function(attr,rule,callback){
+			
 			if (typeof attr === "undefined"
 				|| attr.length === 0){
-				return callback(new Error("Attribute must be defined."));
+				return callback("Attribute must be defined.");
 			}
 			if (typeof rule === "undefined"
 				|| rule.length === 0){
-				return callback(new Error("Rule must be defined."));
+				return callback("Rule must be defined.");
 			}
 
 			var attribute = this.findAttr(attr);
@@ -164,8 +169,10 @@ define(function(require){
 				callback(null, false, "Attribute Not Found.");
 			}
 			else {
+				//not removing rules correctly
 				
-				sheet.deleteRule(this.findStyleAttr(attribute.found).index);
+				
+				sheet.deleteRule(this.findStyleAttr(attribute.found.attr).index);
 
 				var key,value;
 				for (var key in rule){
@@ -183,6 +190,49 @@ define(function(require){
 
 		StyleSheet.prototype.set = function(obj, callback){
 
+		}
+
+		StyleSheet.prototype.changeSelector = function(old, newVal, callback){
+			
+			if (typeof old === "undefined" || old === "undefined"){
+				this.addAttribute(newVal, function(err, state, msg){
+					if (err){
+						callback(err);
+					}
+					
+					callback(null,state,msg);
+				});
+			}
+			else{
+			var attr = this.findAttr(old).found.rules;
+			
+			var self = this;
+			this.removeAttribute(old, function(err,state,msg){
+				if (err){
+					callback(err);
+				}
+				
+				//console.log(attr);
+				self.addAttribute(newVal, function(err, state, msg){
+					if (err){
+						callback(err);
+					}
+					
+					for (var key in attr){
+						var o = {};
+						o[key] = attr[key];
+						self.addRule(newVal, o, function(err, state, msg){
+							if (err){
+								console.warn(err);
+							}
+							
+						});
+					}
+					callback(null, true, "Selector Changed");
+				});
+				
+			});
+		}
 		}
 
 		StyleSheet.prototype.buildFileString = function(callback){
